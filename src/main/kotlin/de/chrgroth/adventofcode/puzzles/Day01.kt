@@ -24,22 +24,46 @@ data object Day01 : Puzzle {
       }
 
     /*
+    - Part 1:
     - Because the dial is a circle, turning the dial left from 0 one click makes it point at 99.
     - Similarly, turning the dial right from 99 one click makes it point at 0.
     - The dial starts by pointing at 50.
     - The actual password is the number of times the dial is left pointing at 0 after any rotation in the sequence.
     */
-    val rotatedValues = rotations.fold(listOf(STARTING_VALUE)) { result, next ->
-      val nextValue = ((result.last() + next).mod(MAX_VALUE))
-      println("${result.last()} + $next = $nextValue")
 
-      result + nextValue
+    /*
+    - Part 2:
+    - "Due to newer security protocols, please use password method 0x434C49434B until further notice."
+    - "method 0x434C49434B" means you're actually supposed to count the number of times any click causes the dial to point at 0
+    - regardless of whether it happens during a rotation or at the end of one.
+    */
+
+    val rotationResults = rotations.fold(listOf(STARTING_VALUE to 0)) { results, nextRotation ->
+      val lastValue = results.last().first
+      val nextResult = (lastValue + nextRotation).mod(MAX_VALUE) to
+          countZerosDuringModulo(lastValue, nextRotation)
+      results + nextResult
     }
 
-    return PuzzleSolution(rotatedValues.count { it == 0 }, null)
+    return PuzzleSolution(
+      rotationResults.count { it.first == 0 },
+      rotationResults.sumOf { it.second }
+    )
+  }
+
+  private fun countZerosDuringModulo(start: Int, add: Int): Int {
+    val sum = start + add
+    return when {
+      sum >= MAX_VALUE -> sum / MAX_VALUE
+      sum < 0 -> -(sum / MAX_VALUE) + if (start > 0) 1 else 0
+      sum == 0 -> 1
+      else -> 0
+    }
   }
 }
 
 suspend fun main() {
   Day01.run()
 }
+
+
