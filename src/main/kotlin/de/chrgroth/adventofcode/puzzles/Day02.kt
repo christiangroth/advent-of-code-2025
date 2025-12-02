@@ -1,6 +1,7 @@
 package de.chrgroth.adventofcode.puzzles
 
 import de.chrgroth.adventofcode.puzzles.utils.skipBlank
+import kotlin.math.sqrt
 
 data object Day02 : Puzzle {
   override suspend fun solve(stage: Stage, input: List<String>): PuzzleSolution {
@@ -30,28 +31,38 @@ data object Day02 : Puzzle {
     }
 
     return PuzzleSolution(
-      invalidIds.sum(),
-      strictInvalidIds.sum()
+      invalidIds.sum(), strictInvalidIds.sum()
     )
   }
 
-  private fun String.isDoubleSequence(): Boolean {
+  private fun String.isDoubleSequence(): Boolean =
     if (length < 2) {
-      return false
+      false
+    } else {
+      val chunks = this.chunked(length / 2)
+      chunks.size == 2 && chunks[0] == chunks[1]
     }
 
-    val chunks = this.chunked(length / 2)
-    return chunks.size == 2 && chunks[0] == chunks[1]
-  }
-
-  private fun String.isRepeatingPattern(): Boolean {
+  private fun String.isRepeatingPattern(): Boolean =
     if (length < 2) {
-      return false
+      false
+    } else {
+      findDividersFor(this.toInt()).any { divider ->
+        windowed(divider).distinct().size == 1
+      }
     }
 
-    // TODO ...
-    return false
-  }
+  private val dividerCache = mutableMapOf<Int, List<Int>>()
+  private fun findDividersFor(n: Int): List<Int> =
+    dividerCache.getOrPut(n) {
+      (2..sqrt(n.toDouble()).toInt()).fold(emptySet<Int>()) { results, i ->
+        if (n % i == 0) {
+          results + i + (n / i)
+        } else {
+          results
+        }
+      }.sorted()
+    }
 }
 
 suspend fun main() {
