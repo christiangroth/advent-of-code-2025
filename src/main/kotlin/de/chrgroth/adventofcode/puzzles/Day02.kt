@@ -9,7 +9,10 @@ data object Day02 : Puzzle {
     val ranges = input.skipBlank()
       .flatMap { line -> line.split(',') }
       .mapNotNull { it.trim().takeIf { it.isNotBlank() } }
-      .map { IntRange(it.split('-')[0].toInt(), it.split('-')[1].toInt()) }
+      .map {
+        val boundaries = it.split('-')
+        LongRange(boundaries[0].toLong(), boundaries[1].toLong())
+      }
 
     // you can find the invalid IDs by looking for any ID which is made only of some sequence of digits repeated twice.
     // So, 55 (5 twice), 6464 (64 twice), and 123123 (123 twice) would all be invalid IDs.
@@ -24,6 +27,10 @@ data object Day02 : Puzzle {
   }
 
   private fun String.isDoubleSequence(): Boolean {
+    if (length < 2) {
+      return false
+    }
+
     val chunks = this.chunked(length / 2)
     return chunks.size == 2 && chunks[0] == chunks[1]
   }
