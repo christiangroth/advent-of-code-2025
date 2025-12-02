@@ -20,9 +20,18 @@ data object Day02 : Puzzle {
       it.filter { id -> id.toString().isDoubleSequence() }
     }
 
+    // Now, an ID is invalid if it is made only of some sequence of digits repeated at least twice.
+    // So, 12341234 (1234 two times),
+    // 123123123 (123 three times),
+    // 1212121212 (12 five times),
+    // and 1111111 (1 seven times) are all invalid IDs.
+    val strictInvalidIds = ranges.flatMap {
+      it.filter { id -> id.toString().isRepeatingPattern() }
+    }
+
     return PuzzleSolution(
       invalidIds.sum(),
-      null
+      strictInvalidIds.sum()
     )
   }
 
@@ -33,6 +42,15 @@ data object Day02 : Puzzle {
 
     val chunks = this.chunked(length / 2)
     return chunks.size == 2 && chunks[0] == chunks[1]
+  }
+
+  private fun String.isRepeatingPattern(): Boolean {
+    if (length < 2) {
+      return false
+    }
+
+    // TODO ...
+    return false
   }
 }
 
