@@ -1,7 +1,6 @@
 package de.chrgroth.adventofcode.puzzles
 
 import de.chrgroth.adventofcode.puzzles.utils.skipBlank
-import kotlin.math.sqrt
 
 data object Day02 : Puzzle {
   override suspend fun solve(stage: Stage, input: List<String>): PuzzleSolution {
@@ -44,24 +43,8 @@ data object Day02 : Puzzle {
     }
 
   private fun String.isRepeatingPattern(): Boolean =
-    if (length < 2) {
-      false
-    } else {
-      findDividersFor(this.toInt()).any { divider ->
-        windowed(divider).distinct().size == 1
-      }
-    }
-
-  private val dividerCache = mutableMapOf<Int, List<Int>>()
-  private fun findDividersFor(n: Int): List<Int> =
-    dividerCache.getOrPut(n) {
-      (2..sqrt(n.toDouble()).toInt()).fold(emptySet<Int>()) { results, i ->
-        if (n % i == 0) {
-          results + i + (n / i)
-        } else {
-          results
-        }
-      }.sorted()
+    (1..(length / 2)).any { chunkSize ->
+      chunked(chunkSize).distinct().size == 1
     }
 }
 
