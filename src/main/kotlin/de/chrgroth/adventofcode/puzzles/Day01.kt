@@ -2,8 +2,8 @@ package de.chrgroth.adventofcode.puzzles
 
 import de.chrgroth.adventofcode.puzzles.utils.skipBlank
 
-const val STARTING_VALUE = 50
-const val MAX_VALUE = 100
+private const val STARTING_VALUE = 50
+private const val MAX_VALUE = 100
 
 data object Day01 : Puzzle {
   override suspend fun solve(stage: Stage, input: List<String>): PuzzleSolution {
