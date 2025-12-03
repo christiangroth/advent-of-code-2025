@@ -21,23 +21,27 @@ data object Day03 : Puzzle {
     // You'll need to find the largest possible joltage each bank can produce.
     // The total output joltage is the sum of the maximum joltage from each bank
 
-    val maxJoltages = banks.map {
-      it.maxJoltage()
+    val maxTwoDigitJoltages = banks.map {
+      it.maxJoltage(2)
+    }
+
+    val maxTwelveDigitJoltages = banks.map {
+      it.maxJoltage(12)
     }
 
     return PuzzleSolution(
-      maxJoltages.sum(), null
+      maxTwoDigitJoltages.sum(), maxTwelveDigitJoltages.sum()
     )
   }
 
-  private fun List<Int>.maxJoltage(): Int {
-    println(this)
-    val firstDigit = dropLast(1).findHighestContainedDigit()
-    print(firstDigit)
-    val firstDigitIndex = indexOf(firstDigit)
-    val secondDigit = drop(firstDigitIndex + 1).findHighestContainedDigit()
-    println(secondDigit)
-    return "$firstDigit$secondDigit".toInt()
+  private fun List<Int>.maxJoltage(numberOfDigits: Int): Long {
+    if (numberOfDigits == 1) {
+      return findHighestContainedDigit().toLong()
+    } else {
+      val nextDigit = dropLast(numberOfDigits - 1).findHighestContainedDigit()
+      val remainder = drop(indexOf(nextDigit) + 1).maxJoltage(numberOfDigits - 1)
+      return "$nextDigit$remainder".toLong()
+    }
   }
 
   private fun List<Int>.findHighestContainedDigit(): Int =
