@@ -17,9 +17,9 @@ data object Day05 : Puzzle {
         line.split('-')
           .let {
             check(it.size == 2) { "Invalid range: $line" }
-            it[0].toInt()..it[1].toInt()
+            it[0].toLong()..it[1].toLong()
           }
-      } to availableIdsInput.skipBlank().map { line -> line.toInt() }
+      } to availableIdsInput.skipBlank().map { line -> line.toLong() }
     }
 
     // an ingredient ID is fresh if it is in any range.
