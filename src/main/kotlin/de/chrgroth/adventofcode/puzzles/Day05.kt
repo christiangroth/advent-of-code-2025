@@ -25,10 +25,39 @@ data object Day05 : Puzzle {
     // an ingredient ID is fresh if it is in any range.
     val freshIngredientIds = availableIds.filter { id -> freshIdRanges.any { range -> id in range } }
 
+    // the Elves would like to know all of the IDs that the fresh ingredient ID ranges consider to be fresh.
+    // An ingredient ID is still considered fresh if it is in any range.
+    val allFreshIngredientIds = combineRanges(freshIdRanges)
+      .fold(0.toLong()) { count, range ->
+        count + (range.last - range.first + 1)
+      }
+
     return PuzzleSolution(
-      freshIngredientIds.size, null
+      freshIngredientIds.size, allFreshIngredientIds
     )
   }
+
+  fun combineRanges(ranges: List<LongRange>): Set<LongRange> =
+    if (ranges.isEmpty()) {
+      emptySet()
+    } else {
+      val result = mutableSetOf<LongRange>()
+
+      val sorted = ranges.sortedBy { it.first }
+      var current = sorted[0]
+      for (i in 1 until sorted.size) {
+        val next = sorted[i]
+        if (current.last >= next.first - 1) {
+          current = current.first..maxOf(current.last, next.last)
+        } else {
+          result.add(current)
+          current = next
+        }
+      }
+      result.add(current)
+
+      result
+    }
 }
 
 suspend fun main() {
