@@ -42,9 +42,9 @@ data object Day04 : Puzzle {
   }
 
   private fun Topology<*>.findPaperRollsReadyToCollect(): List<Coordinate> =
-    obstaclePositions.filter { paperRoll ->
+    obstaclePositions.parallelStream().filter { paperRoll ->
       Vector.directions.map { paperRoll.plus(it) }.count { obstaclePositions.contains(it) } < 4
-    }
+    }.toList()
 
   private fun <T> Topology<T>.cleanupObstacles(positions: List<Coordinate>): Topology<T> =
     copy(obstaclePositions = obstaclePositions - positions.toSet())
