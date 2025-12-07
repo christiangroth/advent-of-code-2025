@@ -151,12 +151,13 @@ internal data class Coordinate(val y: Long, val x: Long) {
   }
 }
 
-internal fun List<String>.findCoordinates(expectedText: Char): List<Coordinate> = flatMapIndexed { lineIndex, line ->
-  line.mapIndexedNotNull { rowIndex, char ->
-    if (char == expectedText) {
-      Coordinate(y = lineIndex, x = rowIndex)
-    } else {
-      null
+internal fun List<String>.findCoordinates(expectedText: Char): List<Coordinate> =
+  flatMapIndexed { lineIndex, line ->
+    line.mapIndexedNotNull { rowIndex, char ->
+      if (char == expectedText) {
+        Coordinate(y = lineIndex, x = rowIndex)
+      } else {
+        null
+      }
     }
   }
-}
