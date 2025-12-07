@@ -1,5 +1,6 @@
 package de.chrgroth.adventofcode.puzzles
 
+import de.chrgroth.adventofcode.puzzles.utils.Coordinate
 import de.chrgroth.adventofcode.puzzles.utils.Topology
 import de.chrgroth.adventofcode.puzzles.utils.Vector
 import de.chrgroth.adventofcode.puzzles.utils.findCoordinates
@@ -26,14 +27,10 @@ data object Day07 : Puzzle {
       ) to inputLines.findCoordinates(CHAR_START_POSITION).first()
     }
 
-    val (beamEndPositions, numberOfSplits) = (startPosition.y until topology.rows)
-      .fold(listOf(startPosition) to 0.toLong()) { (beamPositions, numberOfSplits), rowIndex ->
+    // To repair the teleporter, you first need to understand the beam-splitting properties of the tachyon manifold.
 
-        if (stage == Stage.TEST) {
-          topology.dump(
-            specialMappings = beamPositions.associateWith { "|" }.minus(startPosition).plus(startPosition to "S")
-          )
-        }
+    val numberOfSplits = (startPosition.y until topology.rows)
+      .fold(listOf(startPosition) to 0.toLong()) { (beamPositions, numberOfSplits), rowIndex ->
 
         val obstaclesInRow = topology.obstaclePositions.filter { it.y == rowIndex + 1 }
         if (obstaclesInRow.isEmpty()) {
@@ -50,12 +47,40 @@ data object Day07 : Puzzle {
 
           nextLinePositions.distinct() to numberOfSplits + splitsHappened
         }
-      }
+      }.second
+
+    // With a quantum tachyon manifold, only a single tachyon particle is sent through the manifold.
+    // A tachyon particle takes both the left and right path of each splitter encountered.
+    // Since this is impossible, the manual recommends the many-worlds interpretation of quantum tachyon splitting:
+    // each time a particle reaches a splitter, it's actually time itself which splits.
+    // In one timeline, the particle went left, and in the other timeline, the particle went right.
+    // To fix the manifold, what you really need to know is the number of timelines active after a single particle completes all of its possible journeys through the manifold.
+
+    val beamEndPositions = findEndPositions(topology, startPosition)
 
     return PuzzleSolution(
-      numberOfSplits, null
+      numberOfSplits, beamEndPositions
     )
   }
+
+  private fun findEndPositions(topology: Topology<Unit>, beamPosition: Coordinate): Long =
+    if (topology.rows < 1) {
+      1
+    } else {
+      val nextTopology = topology.copy(
+        rows = topology.rows.dec(),
+        obstaclePositions = topology.obstaclePositions.filter { it.y != 0.toLong() },
+        pointsOfInterest = topology.pointsOfInterest.filter { it.first.y != 0.toLong() },
+      )
+
+      if (topology.obstaclePositions.contains(beamPosition)) {
+        val solutionsLeftPath = findEndPositions(nextTopology, beamPosition.plus(Vector.DOWN).plus(Vector.LEFT))
+        val solutionsRightPath = findEndPositions(nextTopology, beamPosition.plus(Vector.DOWN).plus(Vector.RIGHT))
+        solutionsLeftPath + solutionsRightPath
+      } else {
+        findEndPositions(nextTopology, beamPosition.plus(Vector.DOWN))
+      }
+    }
 }
 
 suspend fun main() {
