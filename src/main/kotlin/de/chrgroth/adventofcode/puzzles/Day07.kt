@@ -54,7 +54,8 @@ data object Day07 : Puzzle {
     // Since this is impossible, the manual recommends the many-worlds interpretation of quantum tachyon splitting:
     // each time a particle reaches a splitter, it's actually time itself which splits.
     // In one timeline, the particle went left, and in the other timeline, the particle went right.
-    // To fix the manifold, what you really need to know is the number of timelines active after a single particle completes all of its possible journeys through the manifold.
+    // To fix the manifold, what you really need to know is the number of timelines active after a single particle completes
+    // all of its possible journeys through the manifold.
 
     val beamEndPositions = findEndPositions(topology, startPosition)
 
@@ -63,22 +64,25 @@ data object Day07 : Puzzle {
     )
   }
 
+  private val endPositionsCache = mutableMapOf<Coordinate, Long>()
   private fun findEndPositions(topology: Topology<Unit>, beamPosition: Coordinate): Long =
-    if (topology.rows < 1) {
+    if (beamPosition.y == (topology.rows.toLong() - 1)) {
       1
+    } else if (endPositionsCache.contains(beamPosition)) {
+      endPositionsCache.getValue(beamPosition)
     } else {
-      val nextTopology = topology.copy(
-        rows = topology.rows.dec(),
-        obstaclePositions = topology.obstaclePositions.filter { it.y != 0.toLong() },
-        pointsOfInterest = topology.pointsOfInterest.filter { it.first.y != 0.toLong() },
-      )
-
       if (topology.obstaclePositions.contains(beamPosition)) {
-        val solutionsLeftPath = findEndPositions(nextTopology, beamPosition.plus(Vector.DOWN).plus(Vector.LEFT))
-        val solutionsRightPath = findEndPositions(nextTopology, beamPosition.plus(Vector.DOWN).plus(Vector.RIGHT))
+        val beamPositionDownLeft = beamPosition.plus(Vector.DOWN).plus(Vector.LEFT)
+        val solutionsLeftPath = findEndPositions(topology, beamPositionDownLeft)
+
+        val beamPositionDownRight = beamPosition.plus(Vector.DOWN).plus(Vector.RIGHT)
+        val solutionsRightPath = findEndPositions(topology, beamPositionDownRight)
+
         solutionsLeftPath + solutionsRightPath
       } else {
-        findEndPositions(nextTopology, beamPosition.plus(Vector.DOWN))
+        findEndPositions(topology, beamPosition.plus(Vector.DOWN))
+      }.also {
+        endPositionsCache[beamPosition] = it
       }
     }
 }
