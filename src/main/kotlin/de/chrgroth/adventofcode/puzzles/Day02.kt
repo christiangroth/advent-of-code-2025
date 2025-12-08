@@ -42,10 +42,32 @@ data object Day02 : Puzzle {
       chunks.size == 2 && chunks[0] == chunks[1]
     }
 
-  private fun String.isRepeatingPattern(): Boolean =
-    (1..(length / 2)).any { chunkSize ->
-      chunked(chunkSize).distinct().size == 1
+  val repeatingPatternsValidChunksCache: MutableMap<Int, List<Int>> = mutableMapOf()
+  private fun String.isRepeatingPattern(): Boolean {
+    if (length < 2) {
+      return false
     }
+
+    val validChunkSizes = repeatingPatternsValidChunksCache.getOrPut(length) {
+      (1..(length / 2)).filter { length % it == 0 }
+    }
+
+    for (chunkSize in validChunkSizes) {
+      var isPattern = true
+      for (i in chunkSize until length) {
+        if (this[i] != this[i % chunkSize]) {
+          isPattern = false
+          break
+        }
+      }
+
+      if (isPattern) {
+        return true
+      }
+    }
+
+    return false
+  }
 }
 
 suspend fun main() {
