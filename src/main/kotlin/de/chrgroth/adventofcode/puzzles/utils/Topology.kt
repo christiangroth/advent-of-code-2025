@@ -1,5 +1,7 @@
 package de.chrgroth.adventofcode.puzzles.utils
 
+import kotlin.math.sqrt
+
 internal enum class TopologyTileState {
   FREE, BLOCKED, POS, OUTSIDE
 }
@@ -149,6 +151,27 @@ internal data class Coordinate(val y: Long, val x: Long) {
   override fun toString(): String {
     return "[$x, $y]"
   }
+}
+
+internal data class Coordinate3D(val x: Long, val y: Long, val z: Long) {
+  fun distanceTo(other: Coordinate3D): Double =
+    sqrt(distanceTo(other))
+
+  fun distanceToSuqared(other: Coordinate3D): Long {
+    val dx = other.x - x
+    val dy = other.y - y
+    val dz = other.z - z
+    return dx * dx + dy * dy + dz * dz
+  }
+
+  override fun toString(): String {
+    return "[$x, $y, $z]"
+  }
+}
+
+internal data class Coordinate3DDistance(val from: Coordinate3D, val to: Coordinate3D, val distance: Double) : Comparable<Coordinate3DDistance> {
+  override fun compareTo(other: Coordinate3DDistance): Int =
+    this.distance.compareTo(other.distance)
 }
 
 internal fun List<String>.findCoordinates(expectedText: Char): List<Coordinate> =
