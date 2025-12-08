@@ -41,10 +41,23 @@ data object Day04 : Puzzle {
     }
   }
 
-  private fun Topology<*>.findPaperRollsReadyToCollect(): List<Coordinate> =
-    obstaclePositions.parallelStream().filter { paperRoll ->
-      Vector.directions.map { paperRoll.plus(it) }.count { obstaclePositions.contains(it) } < 4
-    }.toList()
+  private fun Topology<*>.findPaperRollsReadyToCollect(): List<Coordinate> {
+    val obstacleSet = obstaclePositions.toSet()
+
+    return obstaclePositions.filter { paperRoll ->
+      var neighborCount = 0
+      for (direction in Vector.directions) {
+        if (obstacleSet.contains(paperRoll.plus(direction))) {
+          neighborCount++
+          if (neighborCount >= 4) {
+            return@filter false
+          }
+        }
+      }
+
+      true
+    }
+  }
 
   private fun <T> Topology<T>.cleanupObstacles(positions: List<Coordinate>): Topology<T> =
     copy(obstaclePositions = obstaclePositions - positions.toSet())
