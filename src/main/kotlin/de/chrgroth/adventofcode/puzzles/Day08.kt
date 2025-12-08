@@ -31,32 +31,39 @@ data object Day08 : Puzzle {
       }
     }
 
+    val allDistancesSorted = computePairDistances(junctionBoxPositions).sortedBy { it.distance }
+    val initialCircuits = junctionBoxPositions.map { Circuit(junctionBoxes = listOf(it)) }
+
     // the Elves would like to focus on connecting pairs of junction boxes that are as close together as possible
     // By connecting these two junction boxes together they become part of the same circuit.
     // connect together pairs of junction boxes which are closest together.
     // Afterward, what do you get if you multiply together the sizes of the three largest circuits?
 
-    val numberOfConnections = if (stage == Stage.TEST) NUMBER_OF_CONNECTIONS_TEST else NUMBER_OF_CONNECTIONS_PROD
-    val allDistances = computePairDistances(junctionBoxPositions)
-    val closestPairs = findClosestPairs(numberOfConnections, allDistances)
-    val initialCircuits = junctionBoxPositions.map { Circuit(junctionBoxes = listOf(it)) }
+    val closestPairs = findClosestPairs(
+      limit = if (stage == Stage.TEST) NUMBER_OF_CONNECTIONS_TEST else NUMBER_OF_CONNECTIONS_PROD,
+      sortedDistances = allDistancesSorted
+    )
     val sortedCircuits = closestPairs.fold(initialCircuits) { result, connection ->
-      val circuitOne = result.first { it.junctionBoxes.contains(connection.first) }
-      val circuitTwo = result.first { it.junctionBoxes.contains(connection.second) }
-
-      if (circuitOne != circuitTwo) {
-        val mergedCircuit = circuitOne + circuitTwo
-        result - circuitOne - circuitTwo + mergedCircuit
-      } else {
-        result
-      }
+      result.merge(connection)
     }.sortedBy { it.junctionBoxes.size }.reversed()
+
+    // Continue connecting the closest unconnected pairs of junction boxes together until they're all in the same circuit.
+    // What do you get if you multiply together the X coordinates of the last two junction boxes you need to connect?
+
+    var singleCircuitList = initialCircuits
+    for (connection in allDistancesSorted) {
+      singleCircuitList = singleCircuitList.merge(connection.from to connection.to)
+      if (singleCircuitList.size == 1) {
+        break
+      }
+    }
+    val firstSingleCircuit = singleCircuitList.first()
 
     return PuzzleSolution(
       sortedCircuits.take(3).fold(1.toLong()) { product, circuit ->
         product * circuit.junctionBoxes.size.toLong()
       },
-      null
+      firstSingleCircuit.junctionBoxes.takeLast(2).map { it.x }.reduce { a, b -> a * b }
     )
   }
 
@@ -77,20 +84,51 @@ data object Day08 : Puzzle {
     return pairs.sortedBy { it.distance }
   }
 
-  private fun findClosestPairs(x: Int, sortedDistances: List<Coordinate3DDistance>): List<Pair<Coordinate3D, Coordinate3D>> {
+  private fun findClosestPairs(limit: Int, sortedDistances: List<Coordinate3DDistance>): List<Pair<Coordinate3D, Coordinate3D>> {
+    val processedCache = HashSet<UnorderedPair>()
     val result = mutableListOf<Pair<Coordinate3D, Coordinate3D>>()
+
     for (distance in sortedDistances) {
-      if (result.size >= x) {
+      if (result.size >= limit) {
         break
       }
 
-      val newConnection = Pair(distance.from, distance.to)
-      if (!result.contains(newConnection) && !result.contains(Pair(distance.to, distance.from))) {
-        result.add(newConnection)
+      val cacheKex = UnorderedPair(distance.from, distance.to)
+      if (processedCache.add(cacheKex)) {
+        result.add(Pair(distance.from, distance.to))
       }
     }
 
     return result
+  }
+
+  private fun List<Circuit>.merge(connection: Pair<Coordinate3D, Coordinate3D>): List<Circuit> {
+    val circuitOne = first { it.junctionBoxes.contains(connection.first) }
+    val circuitTwo = first { it.junctionBoxes.contains(connection.second) }
+
+    return if (circuitOne != circuitTwo) {
+      val mergedCircuit = circuitOne + circuitTwo
+      this - circuitOne - circuitTwo + mergedCircuit.copy(
+        // Reorder to have both junction boxes last. Important for part 2 solution.
+        junctionBoxes = mergedCircuit.junctionBoxes - connection.first - connection.second + connection.first + connection.second
+      )
+    } else {
+      this
+    }
+  }
+
+  private data class UnorderedPair(val a: Coordinate3D, val b: Coordinate3D) {
+    override fun equals(other: Any?): Boolean {
+      if (other !is UnorderedPair) return false
+      return (a == other.a && b == other.b) || (a == other.b && b == other.a)
+    }
+
+    override fun hashCode(): Int {
+      // Symmetrischer Hash
+      val h1 = a.hashCode()
+      val h2 = b.hashCode()
+      return if (h1 < h2) 31 * h1 + h2 else 31 * h2 + h1
+    }
   }
 }
 
