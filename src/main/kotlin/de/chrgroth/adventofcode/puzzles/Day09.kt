@@ -2,13 +2,9 @@ package de.chrgroth.adventofcode.puzzles
 
 import de.chrgroth.adventofcode.puzzles.utils.Coordinate
 import de.chrgroth.adventofcode.puzzles.utils.skipBlank
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.buffer
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.withContext
 import kotlin.math.abs
+import kotlin.time.measureTime
+import kotlin.time.measureTimedValue
 
 data object Day09 : Puzzle {
 
@@ -54,42 +50,56 @@ data object Day09 : Puzzle {
 
     // Using two red tiles as opposite corners, what is the largest area of any rectangle you can make?
     val rectangles = mutableListOf<Rectangle>()
-    for (i in 0 until redTilePositions.size) {
-      for (j in i + 1 until redTilePositions.size) {
-        val c1 = redTilePositions[i]
-        val c2 = redTilePositions[j]
+    measureTime {
+      for (i in 0 until redTilePositions.size) {
+        for (j in i + 1 until redTilePositions.size) {
+          val c1 = redTilePositions[i]
+          val c2 = redTilePositions[j]
 
-        if (c1.x == c2.x || c1.y == c2.y) {
-          continue
+          if (c1.x == c2.x || c1.y == c2.y) {
+            continue
+          }
+
+          rectangles.add(Rectangle(c1, c2))
         }
-
-        rectangles.add(Rectangle(c1, c2))
       }
+    }.also {
+      println("$stage rec took $it")
     }
+
 
     // The Elves just remembered: they can only switch out tiles that are red or green. So, your rectangle can only include red or green tiles.
     // In your list, every red tile is connected to the red tile before and after it by a straight line of green tiles.
     // The list wraps, so the first red tile is also connected to the last red tile.
     // Tiles that are adjacent in your list will always be on either the same row or the same column
-    val outerGreenTiles = redTilePositions.windowed(size = 2, step = 1).flatMap {
-      it[0].connectTo(it[1])
-    } + redTilePositions.first().connectTo(redTilePositions.last()).toSet()
+    val outerGreenTiles = measureTimedValue {
+      redTilePositions.windowed(size = 2, step = 1).flatMap {
+        it[0].connectTo(it[1])
+      } + redTilePositions.first().connectTo(redTilePositions.last()).toSet()
+    }.let {
+      println("$stage outer took ${it.duration}")
+      it.value
+    }
 
     // In addition, all of the tiles inside this loop of red and green tiles are also green.
     // Using two red tiles as opposite corners, what is the largest area of any rectangle you can make using only red and green tiles?
     val outlineTilePosition = (redTilePositions + outerGreenTiles)
-
-    val cachedOutline = outlineTilePosition.toSet()
-    val byX = outlineTilePosition.groupBy { it.x }.mapValues { (_, coords) ->
-      coords.map { it.y }.sorted()
-    }
-    val byY = outlineTilePosition.groupBy { it.y }.mapValues { (_, coords) ->
-      coords.map { it.x }.sorted()
+    val (byX, byY) = measureTimedValue {
+      outlineTilePosition.groupBy { it.x }.mapValues { (_, coords) ->
+        coords.map { it.y }.sorted()
+      } to
+          outlineTilePosition.groupBy { it.y }.mapValues { (_, coords) ->
+            coords.map { it.x }.sorted()
+          }
+    }.let {
+      println("$stage outline/coords took ${it.duration}")
+      it.value
     }
 
     // Neue Funktion die die vorberechneten Maps nutzt
-    fun checkRectangle(rectangle: Rectangle): Boolean {
-      return rectangle.outlinePositions().parallelStream().allMatch { candidate ->
+    val cachedOutline = outlineTilePosition.toSet()
+    fun checkRectangle(rectangle: Rectangle): Boolean =
+      rectangle.outlinePositions().parallelStream().allMatch { candidate ->
         cachedOutline.contains(candidate) || run {
           val xCoords = byY[candidate.y]
           val yCoords = byX[candidate.x]
@@ -100,24 +110,23 @@ data object Day09 : Puzzle {
               yCoords.first() < candidate.y && yCoords.last() > candidate.y
         }
       }
+
+    val partOne = measureTimedValue { rectangles.maxOfOrNull { it.areaSize() } ?: 0 }.let {
+      println("$stage part 1 took ${it.duration}")
+      it.value
+    }
+    val partTwo = measureTimedValue {
+      rectangles.sortedByDescending { it.areaSize() }
+        .parallelStream()
+        .filter { checkRectangle(it) }
+        .findFirst()
+        .get().areaSize()
+    }.let {
+      println("$stage part 2 took ${it.duration}")
+      it.value
     }
 
-    return PuzzleSolution(
-      rectangles.maxOfOrNull { it.areaSize() } ?: 0,
-      rectangles.sortedByDescending { it.areaSize() }
-        .asFlow()
-        .buffer(10) // Puffere 10 Rectangles
-        .mapNotNull { rectangle ->
-          withContext(Dispatchers.Default) {
-            if (checkRectangle(rectangle)) {
-              rectangle
-            } else {
-              null
-            }
-          }
-        }
-        .first().areaSize()
-    )
+    return PuzzleSolution(partOne, partTwo)
   }
 
   private fun Coordinate.connectTo(other: Coordinate): List<Coordinate> {
@@ -136,31 +145,6 @@ data object Day09 : Puzzle {
 
       (minX + 1 until maxX).map {
         Coordinate(x = it, y = y)
-      }
-    }
-  }
-
-  private fun List<Coordinate>.areAllPositionsInside(candidates: Set<Coordinate>): Boolean {
-    val cachedOutline = toSet()
-
-    val byX = groupBy { it.x }.mapValues { (_, coords) ->
-      coords.map { it.y }.sorted()
-    }
-    val byY = groupBy { it.y }.mapValues { (_, coords) ->
-      coords.map { it.x }.sorted()
-    }
-
-    return candidates.parallelStream().allMatch { candidate ->
-      if (cachedOutline.contains(candidate)) {
-        true
-      } else {
-        val xCoords = byY[candidate.y]
-        val yCoords = byX[candidate.x]
-
-        xCoords != null && xCoords.size >= 2 &&
-            xCoords.first() < candidate.x && xCoords.last() > candidate.x &&
-            yCoords != null && yCoords.size >= 2 &&
-            yCoords.first() < candidate.y && yCoords.last() > candidate.y
       }
     }
   }
